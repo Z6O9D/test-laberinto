@@ -1,0 +1,194 @@
+import random
+
+while True:
+    try:
+        from database import save
+    except ModuleNotFoundError:
+        arch = open("database.py","wt")
+        arch.write("save={}")
+        arch.close()
+    except ImportError:
+        arch = open("database.py","wt")
+        arch.write("save={}")
+        arch.close()
+    else:
+        break
+
+def guardar_partida(nom,mins,matriz,hide):
+    dato = input("¿Desea guardar la partida? (Si o No): ")
+    while dato.lower() not in ("si","no"):
+        print("Ingrese solamente Si o No")
+        dato = input("Para guardar Si o No: ")
+    if dato == "si":
+        archivo = open("database.py","wt")
+        archivo.write('save={"'+nom+'":'+str(matriz)+',"hide":'+str(hide)+',"mine":'+str(mins)+'}')
+        archivo.close()
+
+def rellenar_tablero_minas(matriz,mina):
+    while mina > 0:
+        azar1 = random.randint(0,len(matriz)-1)
+        azar2 = random.randint(0,len(matriz)-1)
+        if matriz[azar1][azar2] != "M":
+            matriz[azar1][azar2] = "M"
+            mina = mina - 1
+            detector(matriz,azar1,azar2)
+    return matriz
+
+def detector(matr,az1,az2):
+    x = az1
+    y = az2
+    if az1 == 0:
+        az1 = 1
+    if az2 == 0:
+        az2 = 1
+    for i in range(az1-1,x+2):
+        for j in range(az2-1,y+2):
+            try:
+                if matr[i][j]!="M":
+                    matr[i][j] += 1
+            except TypeError:
+                pass
+            except IndexError:
+                pass
+
+def cero(tablero,minefield):
+    band=False
+    for i in range(len(tablero)):
+        for j in range(len(tablero)):
+            if tablero[i][j] == 0 and (i>0 or i<len(tablero)) and (j>0 or j<len(tablero)):
+                for k in range(-1,2):
+                    for l in range(-1,2):
+                        try:
+                            if tablero[i+k][j+l] == "." and (i+k > -1 and j+l > -1):
+                                tablero[i+k][j+l] = minefield[i+k][j+l]
+                                band=True
+                        except IndexError:
+                            pass
+        if band:
+            cero(tablero,minefield)
+
+def datos(oculto,minado,name,mines,band):
+    band["casilla"]=True
+    while True:
+        try:
+            fila = int(input("Ingrese la fila que desea revelar: "))
+            while fila <= 0 or fila > len(minado):
+                print("Debe ser mayor que 0 y estar dentro del rango de la matriz")
+                fila = int(input("Ingrese la fila que desea revelar: "))
+            columna = int(input("Ingrese la columna que desea revelar: "))
+            while columna <= 0 or columna > len(minado):
+                print("Debe ser mayor que 0 y estar dentro del rango de la matriz")
+                columna = int(input("Ingrese la columna que desea revelar: "))
+            break      
+        except ValueError:
+            print("Debe ingresar un número, otro tipo de variable no es válida")
+        except KeyboardInterrupt:
+            guardar_partida(name,mines,minado,oculto)
+            band["guardado"]=True
+            break
+    try:        
+        if oculto[fila-1][columna-1]==".":
+            if minado[fila-1][columna-1] == "M":
+                oculto[fila-1][columna-1] = minado[fila-1][columna-1]
+                band["partida"] = False
+            elif minado[fila-1][columna-1] == 0:
+                oculto[fila-1][columna-1] = minado[fila-1][columna-1]
+                cero(oculto,minado)
+            else:
+                oculto[fila-1][columna-1] = minado[fila-1][columna-1]
+        else:
+            band["casilla"]=False
+    except UnboundLocalError:
+        pass
+
+def imprimir_matriz_jugada(campo_min):
+    for fil in range(len(campo_min)):
+        for col in range(len(campo_min)):
+            print(campo_min[fil][col], end = "\t")
+        print()
+        
+def guardar_resultados(jug, res, tam, numin):
+    try:
+        csv = open("partidas_res.txt","at")
+        csv.write(jug+"; "+res+"; Casillas="+str(tam*tam)+"; Minas="+str(numin)+"\n")
+        print("Partida guardada en partidas_res.txt")
+        print("Encontrará los datos de los Jugadores, Resultados, Total de Casillas y número de Minas")
+    except OSError as mensaje:
+        print("No se puede grabar el archivo:", mensaje)
+    finally:
+        try:
+            csv.close()
+        except NameError:
+            pass
+
+#PROGRAMA PRINCIPAL
+#BUSCAMINAS PERSONALIZADO, se seleccionan la cantidad de minas y casillas
+print("BUSCAMINAS PERSONALIZADO \nPresionando [Ctrl+C + Enter] puede abandonar la partida y guardar esa última")
+jugador = input("Ingrese su Nombre y Apellido: ")
+nombre = jugador.lower()
+print()
+play = {"partida":True, "guardado":False, "casilla":True}
+
+try:
+    if save[nombre]:
+        campo_minado = save[nombre]
+        tamano = len(campo_minado)
+        minas = save["mine"]
+        matriz_mostrar = save["hide"]
+        arch = open("database.py","wt")
+        arch.write("save={}")
+        arch.close()
+except KeyError:
+    while True:
+        try:
+            tamano = int(input("Ingrese el tamaño de su buscaminas: "))
+            while tamano < 5:
+                print("Tamaño inválido, se recomienda mayor o igual a 5")
+                tamano = int(input("Ingrese el tamaño de su buscaminas: "))
+            minas = int(input("Ingrese el número de minas: "))
+            while minas > tamano*tamano or minas < tamano:
+                print("El número de minas debe ser menor al número de casillas y mayor al tamaño")
+                minas = int(input("Ingrese el número de minas: "))
+            matriz_mostrar = []
+            matriz_mostrar = [["."]*tamano for i in range(tamano)] #se rellena la matriz con .
+            break
+        except ValueError:
+            print("Debe ingresar un número, no se admite otro tipo de variable")
+    matriz_no_mostrar = []
+    matriz_no_mostrar = [[0]*tamano for i in range(tamano)] #se rellena la matriz con 0, la que esta oculta para el jugador
+    campo_minado = rellenar_tablero_minas(matriz_no_mostrar,minas)
+
+while True: #Jugando la partida
+    contador = 0
+    for fi in range(len(matriz_mostrar)):
+        for co in range(len(matriz_mostrar)):
+            print(matriz_mostrar[fi][co], end = "\t")
+        print()
+    
+    datos(matriz_mostrar,campo_minado,nombre,minas, play)
+    if play["partida"] and play["casilla"]:
+        for fi in range(len(matriz_mostrar)):
+            for co in range(len(matriz_mostrar)):
+                if matriz_mostrar[fi][co] == ".":
+                    contador += 1
+        restante = minas
+        if restante == contador:
+            print()
+            print("GANASTE".center(40,"*"))
+            print()
+            imprimir_matriz_jugada(campo_minado)
+            resultado = "Ganador"
+            guardar_resultados(jugador, resultado, tamano, minas)
+            break
+    if play["partida"] == False and play["guardado"] == False:
+        print()
+        print("PERDISTE".center(40,"*"))
+        print()
+        imprimir_matriz_jugada(campo_minado)
+        resultado = "Perdedor"
+        guardar_resultados(jugador, resultado, tamano, minas)
+        break
+    if not(play["casilla"]):
+        print("La casilla escogida ya ha sido revelada")
+    if play["guardado"]:
+        break
