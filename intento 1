@@ -1,11 +1,16 @@
 
 
-conversion
+def conversion(matriz, pos, endp):
+    grafo=[]
+
+    return grafo
 
 matriz=[
 [0,8,8,0,0],
 [0,0,0,0,8],
 [8,0,8,0,0],
 [0,0,8,8,0],
-[8,0,1,0,0]]
+[8,0,0,0,0]]
+pos_inicial=[4,2]
+pos_final=[4,2]
 
